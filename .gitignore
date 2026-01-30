@@ -39,3 +39,10 @@
 
 # debug information files
 *.dwo
+
+
+.vscode/
+.cache/
+build/
+bf-interpretor/build
+bf-interpretor/ignore.txt
