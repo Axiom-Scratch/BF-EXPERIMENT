@@ -35,8 +35,6 @@ This serves as the **foundation runtime** for everything that comes next.
 
 ## 🗂 Vault Structure
 
-## 🗂 Vault Structure
-
 ```text
 BF-EXPERIMENT/
 ├── programs/              # All Brainfuck programs
@@ -53,6 +51,46 @@ BF-EXPERIMENT/
 └── README.md
 ```
 
+### ✅ Minimal Web IR Lab Added
+
+A small web workspace is added to the vault for browser-side experiments.
+
+Location:
+```text
+Brain-Fuck-web-IR-LAB/web/public/
+```
+
+What it contains:
+- `index.html` — minimal page to load/run future BF tools
+- `assets/` — JS/CSS and future runtime/visualizer files
+- `README.md` — notes for this web lab
+
+Purpose:
+- Start a lightweight **BF IR / visualizer lab** on the web
+- Later connect it with the interpreter/compiler pipeline
+## 🗂 Vault Structure
+
+```text
+BF-EXPERIMENT/
+├── Brain-Fuck-web-IR-LAB/
+│   └── web/public/
+│       ├── assets/
+│       ├── index.html
+│       └── README.md
+│
+├── programs/              # All Brainfuck programs
+│   ├── tests/
+│   ├── demos/
+│   └── experiments/
+│
+├── projects/
+│   ├── bf-interpretor/    # C++ interpreter (current)
+│   ├── bf-compiler/       # Future compiler
+│   └── bf-jit/            # Future JIT engine
+│
+├── tools/                 # Helper scripts
+└── README.md
+```
 
 ## 🎯 Purpose of This Vault
 
