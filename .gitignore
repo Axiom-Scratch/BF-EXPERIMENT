@@ -44,5 +44,9 @@
 .vscode/
 .cache/
 build/
-bf-interpretor/build
 bf-interpretor/ignore.txt
+bf-interpretor/agent_md
+bf-interpretor/target
+bf-interpretor/Cargo.lock
+bf-interpretor/**/*.rlib
+bf-interpretor/**/*.rmeta

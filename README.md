@@ -16,18 +16,18 @@ This is not a single project — it's a growing **ecosystem** around Brainfuck a
 
 ### ✅ Interpreter Added
 
-The first major project inside the vault is a **C++ Brainfuck Interpreter**.
+The first major project inside the vault is a **Rust Brainfuck Interpreter**.
 
 Location:
 projects/bf-interpretor/
 
 This interpreter provides:
-- Full Brainfuck execution
-- Loop support (`[` `]`) via bracket jump table
-- Configurable memory tape
-- `u8` cell model (0–255 wraparound)
-- Strict pointer safety
-- Standard I/O support
+- Precomputed bracket jumps for loop execution
+- Deterministic execution model
+- 30,000-cell `u8` tape with wrapping arithmetic
+- Strict pointer bounds
+- Buffered stdin/stdout
+- No source echo
 
 This serves as the **foundation runtime** for everything that comes next.
 
@@ -37,13 +37,19 @@ This serves as the **foundation runtime** for everything that comes next.
 
 ```text
 BF-EXPERIMENT/
+├── Brain-Fuck-web-IR-LAB/
+│   └── web/public/
+│       ├── assets/
+│       ├── index.html
+│       └── README.md
+│
 ├── programs/              # All Brainfuck programs
 │   ├── tests/
 │   ├── demos/
 │   └── experiments/
 │
 ├── projects/
-│   ├── bf-interpretor/    # C++ interpreter (current)
+│   ├── bf-interpretor/    # Rust interpreter (current)
 │   ├── bf-compiler/       # Future compiler
 │   └── bf-jit/            # Future JIT engine
 │
@@ -68,29 +74,6 @@ What it contains:
 Purpose:
 - Start a lightweight **BF IR / visualizer lab** on the web
 - Later connect it with the interpreter/compiler pipeline
-## 🗂 Vault Structure
-
-```text
-BF-EXPERIMENT/
-├── Brain-Fuck-web-IR-LAB/
-│   └── web/public/
-│       ├── assets/
-│       ├── index.html
-│       └── README.md
-│
-├── programs/              # All Brainfuck programs
-│   ├── tests/
-│   ├── demos/
-│   └── experiments/
-│
-├── projects/
-│   ├── bf-interpretor/    # C++ interpreter (current)
-│   ├── bf-compiler/       # Future compiler
-│   └── bf-jit/            # Future JIT engine
-│
-├── tools/                 # Helper scripts
-└── README.md
-```
 
 ## 🎯 Purpose of This Vault
 
