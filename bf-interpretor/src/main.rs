@@ -13,6 +13,7 @@ const TRACE_FLAG: &str = "--trace";
 const NO_OPT_FLAG: &str = "--no-opt";
 const EXIT_USAGE: i32 = 2;
 const EXIT_RUNTIME: i32 = 1;
+const MAX_STEPS_ERROR: &str = "max steps";
 
 fn usage() -> &'static str {
     "Usage: bf <file> [--tape N] [--max-steps N] [--dump-ir] [--trace] [--no-opt]"
@@ -167,6 +168,9 @@ fn main() {
 
     if let Err(err) = run_file(&path, tape_size, max_steps, dump_ir, trace, no_opt) {
         eprintln!("{}", err);
+        if err.contains(MAX_STEPS_ERROR) {
+            process::exit(1);
+        }
         process::exit(EXIT_RUNTIME);
     }
 }

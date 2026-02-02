@@ -1,5 +1,7 @@
+use bf::io::Debug;
 use bf::{brackets, io, ir, opt, parse, vm};
 use std::fmt::Write as FmtWrite;
+use std::io::sink;
 use std::io::Cursor;
 
 const TAPE_SIZE: usize = 8;
@@ -123,8 +125,9 @@ fn run_ir_pipeline(program: &str, optimize: bool) -> Outcome {
     let mut input = io::Input::new(Cursor::new(Vec::new()));
     let mut output = io::Output::new(Vec::new());
 
-    let debug: Option<&mut io::Debug<Vec<u8>>> = None;
-    let result = machine.run_ir(&ir, &mut input, &mut output, debug, Some(MAX_STEPS));
+    let mut dbg_sink = sink();
+    let mut dbg = Debug::new(&mut dbg_sink);
+    let result = machine.run_ir(&ir, &mut input, &mut output, Some(&mut dbg), Some(MAX_STEPS));
     let output_bytes = output.into_inner().expect("output buffer flush failed");
     let termination = match result {
         Ok(()) => Termination::Ok,

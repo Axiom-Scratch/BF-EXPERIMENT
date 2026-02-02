@@ -1,6 +1,6 @@
 use std::io::Write;
 
-#[derive(Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Instr {
     Add(i32),
     Move(i32),
