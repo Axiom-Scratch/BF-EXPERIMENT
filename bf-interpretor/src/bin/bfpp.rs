@@ -1,11 +1,9 @@
 use std::env;
-use std::fs::File;
-use std::io::{self, Read, Write};
+use std::path::PathBuf;
 use std::process;
 
-fn usage() -> &'static str {
-    "Usage: bfpp <input.bfpp> -o <output.bf>"
-}
+#[path = "../bfpp/mod.rs"]
+mod bfpp;
 
 fn main() {
     if let Err(err) = run() {
@@ -14,32 +12,30 @@ fn main() {
     }
 }
 
-fn run() -> Result<(), String> {
+fn run() -> Result<(), bfpp::Error> {
     let mut args = env::args().skip(1);
-    let input = args
-        .next()
-        .ok_or_else(|| usage().to_string())?;
+    let input = match args.next() {
+        Some(value) => value,
+        None => return Err(bfpp::Error::Usage),
+    };
     if args.next().as_deref() != Some("-o") {
-        return Err(usage().to_string());
+        return Err(bfpp::Error::Usage);
     }
-    let output = args.next().ok_or_else(|| usage().to_string())?;
+    let output = match args.next() {
+        Some(value) => value,
+        None => return Err(bfpp::Error::Usage),
+    };
+    if args.next().is_some() {
+        return Err(bfpp::Error::Usage);
+    }
 
-    let mut source = Vec::new();
-    File::open(&input)
-        .map_err(|e| format!("failed to open '{}': {}", input, e))?
-        .read_to_end(&mut source)
-        .map_err(|e| format!("failed to read '{}': {}", input, e))?;
+    let input_path = PathBuf::from(input);
+    let output_path = PathBuf::from(output);
 
-    let processed = preprocess(&source);
+    let processed = bfpp::preprocess(&input_path)?;
 
-    let mut dest = File::create(&output)
-        .map_err(|e| format!("failed to create '{}': {}", output, e))?;
-    dest.write_all(&processed)
-        .map_err(|e| format!("failed to write '{}': {}", output, e))?;
+    std::fs::write(&output_path, processed)
+        .map_err(|e| bfpp::Error::WriteFailed { path: output_path, source: e })?;
 
     Ok(())
-}
-
-fn preprocess(source: &[u8]) -> Vec<u8> {
-    source.to_vec()
 }
