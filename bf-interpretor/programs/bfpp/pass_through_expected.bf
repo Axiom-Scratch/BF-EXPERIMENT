@@ -1,5 +1,0 @@
-BFPP PASS THROUGH TEST
-ONLY ASCII TEXT 123
-PROGRAM
-++++++[>++++++++++<-]>+++++.+.
-END

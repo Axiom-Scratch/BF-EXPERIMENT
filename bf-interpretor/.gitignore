@@ -1,0 +1,9 @@
+target/
+**/*.log
+**/*.tmp
+**/*.bak
+**/*.swp
+**/*.cache
+/build/
+/dist/
+/out/

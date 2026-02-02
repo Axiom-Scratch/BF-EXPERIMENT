@@ -48,6 +48,12 @@ impl<W: Write> Output<W> {
             .flush()
             .map_err(|e| format!("stdout flush failed: {}", e))
     }
+
+    pub fn into_inner(self) -> Result<W, String> {
+        self.writer
+            .into_inner()
+            .map_err(|e| format!("stdout flush failed: {}", e))
+    }
 }
 
 pub struct Debug<W: Write> {

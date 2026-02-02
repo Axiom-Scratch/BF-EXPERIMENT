@@ -11,17 +11,20 @@ pub fn run_file(
     max_steps: Option<u64>,
     dump_ir: bool,
     trace: bool,
+    no_opt: bool,
 ) -> Result<(), String> {
     let bytes =
         std::fs::read(path).map_err(|e| format!("failed to read '{}': {}", path, e))?;
     let ops = parse::filter_ops(&bytes);
     let jumps = brackets::build_jumps(&ops)?;
     let mut ir = ir::build(&ops, &jumps)?;
-    opt::merge_ops(&mut ir);
-    opt::rebuild_jumps(&mut ir)?;
-    opt::loop_analysis(&mut ir);
-    opt::peephole(&mut ir);
-    opt::rebuild_jumps(&mut ir)?;
+    if !no_opt {
+        opt::merge_ops(&mut ir);
+        opt::rebuild_jumps(&mut ir)?;
+        opt::loop_analysis(&mut ir);
+        opt::peephole(&mut ir);
+        opt::rebuild_jumps(&mut ir)?;
+    }
 
     let stdin = std::io::stdin();
     let stdout = std::io::stdout();

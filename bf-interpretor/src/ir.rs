@@ -1,10 +1,11 @@
 use std::io::Write;
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum Instr {
     Add(i32),
     Move(i32),
     AddTo(i32, i32),
+    AddMul(Vec<(i32, i32)>),
     Output,
     Input,
     Jz(usize),
@@ -49,10 +50,17 @@ pub fn build(ops: &[u8], jumps: &[usize]) -> Result<Vec<Instr>, String> {
 
 pub fn dump_ir<W: Write>(ir: &[Instr], out: &mut W) -> Result<(), String> {
     for (idx, instr) in ir.iter().enumerate() {
-        let result = match *instr {
+        let result: Result<(), std::io::Error> = match instr {
             Instr::Add(delta) => writeln!(out, "{} Add {}", idx, delta),
             Instr::Move(delta) => writeln!(out, "{} Move {}", idx, delta),
             Instr::AddTo(offset, sign) => writeln!(out, "{} AddTo {} {}", idx, offset, sign),
+            Instr::AddMul(edits) => (|| {
+                write!(out, "{} AddMul", idx)?;
+                for (offset, factor) in edits {
+                    write!(out, " ({},{})", offset, factor)?;
+                }
+                writeln!(out)
+            })(),
             Instr::Output => writeln!(out, "{} Output", idx),
             Instr::Input => writeln!(out, "{} Input", idx),
             Instr::Jz(target) => writeln!(out, "{} Jz {}", idx, target),

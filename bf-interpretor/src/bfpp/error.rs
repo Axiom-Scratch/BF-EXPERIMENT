@@ -8,6 +8,7 @@ pub enum Error {
     WriteFailed { path: PathBuf, source: std::io::Error },
     InvalidUtf8 { path: PathBuf },
     IncludeError { path: PathBuf, message: String },
+    RepeatError { message: String },
 }
 
 impl fmt::Display for Error {
@@ -25,6 +26,9 @@ impl fmt::Display for Error {
             }
             Error::IncludeError { path, message } => {
                 write!(f, "include error in '{}': {}", path.display(), message)
+            }
+            Error::RepeatError { message } => {
+                write!(f, "repeat error: {}", message)
             }
         }
     }

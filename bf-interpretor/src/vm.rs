@@ -17,6 +17,14 @@ impl Vm {
         Ok(Self { tape, pointer: 0 })
     }
 
+    pub fn pointer(&self) -> usize {
+        self.pointer
+    }
+
+    pub fn tape(&self) -> &[u8] {
+        &self.tape
+    }
+
     fn ensure_capacity(&mut self, required: usize) -> Result<(), String> {
         if required < self.tape.len() {
             return Ok(());
@@ -92,6 +100,11 @@ impl Vm {
         self.tape[self.pointer] = value.wrapping_add(delta as u8);
     }
 
+    fn wrap_cell(value: i64) -> u8 {
+        let wrapped = ((value % 256) + 256) % 256;
+        wrapped as u8
+    }
+
     pub fn run_ir<R, W, E>(
         &mut self,
         ir: &[Instr],
@@ -131,7 +144,7 @@ impl Vm {
                 }
             }
 
-            let instr = ir[ip];
+            let instr = &ir[ip];
             if let Some(ref mut debug) = debug {
                 self.trace(debug, steps, ip, instr)?;
             }
@@ -142,17 +155,17 @@ impl Vm {
 
             match instr {
                 Instr::Add(delta) => {
-                    self.add_cell(delta);
+                    self.add_cell(*delta);
                 }
                 Instr::Move(delta) => {
-                    self.move_ptr(delta)?;
+                    self.move_ptr(*delta)?;
                 }
                 Instr::AddTo(offset, sign) => {
                     let value = self.tape[self.pointer];
                     if value != 0 {
-                        let target = self.offset_index(offset)?;
+                        let target = self.offset_index(*offset)?;
                         let dest = self.tape[target];
-                        let updated = if sign < 0 {
+                        let updated = if *sign < 0 {
                             dest.wrapping_sub(value)
                         } else {
                             dest.wrapping_add(value)
@@ -160,6 +173,18 @@ impl Vm {
                         self.tape[target] = updated;
                         self.tape[self.pointer] = 0;
                     }
+                }
+                Instr::AddMul(edits) => {
+                    let src = self.tape[self.pointer] as i64;
+                    if src != 0 {
+                        for (offset, factor) in edits {
+                            let target = self.offset_index(*offset)?;
+                            let dest = self.tape[target] as i64;
+                            let delta = src * (*factor as i64);
+                            self.tape[target] = Self::wrap_cell(dest + delta);
+                        }
+                    }
+                    self.tape[self.pointer] = 0;
                 }
                 Instr::Output => {
                     let byte = self.tape[self.pointer];
@@ -173,20 +198,20 @@ impl Vm {
                     self.tape[self.pointer] = 0;
                 }
                 Instr::Scan(dir) => {
-                    if dir == 0 {
+                    if *dir == 0 {
                         return Err("runtime error: scan direction zero".to_string());
                     }
-                    let step = if dir > 0 { 1 } else { -1 };
+                    let step = if *dir > 0 { 1 } else { -1 };
                     while self.tape[self.pointer] != 0 {
                         self.move_ptr(step)?;
                     }
                 }
                 Instr::Jz(target) => {
                     if self.tape[self.pointer] == 0 {
-                        if target >= ir.len() {
+                        if *target >= ir.len() {
                             return Err("runtime error: jump target out of range".to_string());
                         }
-                        ip = target
+                        ip = (*target)
                             .checked_add(1)
                             .ok_or_else(|| "runtime error: instruction pointer overflow".to_string())?;
                         continue;
@@ -194,10 +219,10 @@ impl Vm {
                 }
                 Instr::Jnz(target) => {
                     if self.tape[self.pointer] != 0 {
-                        if target >= ir.len() {
+                        if *target >= ir.len() {
                             return Err("runtime error: jump target out of range".to_string());
                         }
-                        ip = target;
+                        ip = *target;
                         continue;
                     }
                 }
@@ -217,7 +242,7 @@ impl Vm {
         debug: &mut Debug<E>,
         steps: u64,
         ip: usize,
-        instr: Instr,
+        instr: &Instr,
     ) -> Result<(), String> {
         let cell = self.tape[self.pointer];
         debug.write_fmt(format_args!(
@@ -229,6 +254,13 @@ impl Vm {
             Instr::Move(delta) => debug.write_fmt(format_args!("Move {}\n", delta)),
             Instr::AddTo(offset, sign) => {
                 debug.write_fmt(format_args!("AddTo {} {}\n", offset, sign))
+            }
+            Instr::AddMul(edits) => {
+                debug.write_fmt(format_args!("AddMul"))?;
+                for (offset, factor) in edits {
+                    debug.write_fmt(format_args!(" ({},{})", offset, factor))?;
+                }
+                debug.write_fmt(format_args!("\n"))
             }
             Instr::Output => debug.write_fmt(format_args!("Output\n")),
             Instr::Input => debug.write_fmt(format_args!("Input\n")),

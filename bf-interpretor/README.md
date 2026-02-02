@@ -1,50 +1,71 @@
 # BF Runtime (Rust Brainfuck Engine)
 
-## Short description
-- Brainfuck runtime written entirely in Rust with clean module boundaries.
-- Designed as the foundation for compiler, IR, and JIT experimentation.
-- Deterministic execution engine that never echoes program source.
+## Overview
+Rust-based Brainfuck runtime and preprocessing toolchain designed as a deterministic execution engine and research platform for interpreter and compiler design.
 
-## Current Features (v1 – Rust Core)
-- Classic Brainfuck execution over a 30k cell tape with `u8` wrap.
-- Bracket jump precomputation before running the VM loop.
-- Deterministic model with strict pointer bounds and no undefined behavior.
-- Buffered I/O for stdin/stdout during execution.
-- Cargo build pipeline driven by the Rust toolchain.
+This project now consists of:
+- A high-performance IR-driven Brainfuck interpreter
+- A modular BF preprocessor (BFPP) for scalable program construction
 
-## Execution Architecture Diagram
-BF Source → Filter Ops → Bracket Map → VM Loop
+## Current Capabilities
+
+### Interpreter
+- IR-based execution (not raw opcode stepping)
+- Opcode merging and optimization passes
+- Bracket matching precomputation
+- Auto-growing tape with strict left bound
+- Deterministic behavior
+- Buffered I/O
+- No source echo
+
+### BFPP (Preprocessor)
+- `#include` support
+- Comment stripping
+- Repeat expansion for bulk opcode generation
+- Modular structure ready for macro extensions
+- Example program: programs/bfpp/hello_world.bfpp
+
+## Execution Pipeline
+Source → Filter → Bracket Map → IR Build → Optimization → VM Execution
 
 ## Build & Run
-- **Requirements**: Rust toolchain with Cargo installed.
-- **Build**: `cargo build`
-- **Run**: `cargo run --bin bf -- programs/file.bf`
 
-## Project Structure (Rust)
-```
-src/main.rs      → CLI entry
-src/lib.rs       → Public API
-src/vm.rs        → Execution engine
-src/brackets.rs  → Jump table
-src/parse.rs     → Opcode filtering
-src/bin/bfpp.rs  → Preprocessor (future)
-```
+Build:
+cargo build --release
 
-## Design Philosophy
-- Runtime-first architecture that keeps the CLI (main.rs) separate from the core runtime (lib.rs).
-- Layered evolution path: Interpreter → IR → Bytecode VM → JIT backend.
-- Focus on determinism and correctness, with no source echo and explicit tape bounds.
+Run interpreter:
+./target/release/bf programs/file.bf
 
-## Future Roadmap
-- Opcode merging and filtering optimizations.
-- IR layer for analysis and transformation.
-- Bytecode VM as an explicit execution layer.
-- JIT backend exploration for native emission.
-- Debug tools for stepping, traces, and tape inspection.
-- Advanced memory models for segmented or large tapes.
+Run preprocessor:
+./target/release/bfpp input.bfpp -o output.bf
 
-## Project Goal
-- Research sandbox for interpreter and compiler design centered on a deterministic Brainfuck runtime.
+Example BFPP program:
+./target/release/bfpp programs/bfpp/hello_world.bfpp -o /tmp/hello_world.bf
+./target/release/bf /tmp/hello_world.bf
+
+## Directory Layout
+
+src/
+- main.rs        CLI
+- lib.rs         runtime pipeline
+- parse.rs       filtering
+- brackets.rs    validation
+- ir.rs          IR representation
+- opt.rs         optimizations
+- vm.rs          execution engine
+- io.rs          buffered I/O
+
+src/bin/
+- bfpp.rs        preprocessor entry
+
+programs/
+- bfpp/
+- tests/
+- stress/
+- lib/
+
+## Philosophy
+The project treats Brainfuck as a minimal instruction set for studying runtime architecture. Emphasis is placed on deterministic execution, clear module boundaries, and scalable program construction.
 
 ## License
 MIT License

@@ -10,11 +10,12 @@ const MAX_STEPS_FLAG: &str = "--max-steps";
 const MAX_STEPS_FLAG_EQ: &str = "--max-steps=";
 const DUMP_IR_FLAG: &str = "--dump-ir";
 const TRACE_FLAG: &str = "--trace";
+const NO_OPT_FLAG: &str = "--no-opt";
 const EXIT_USAGE: i32 = 2;
 const EXIT_RUNTIME: i32 = 1;
 
 fn usage() -> &'static str {
-    "Usage: bf <file> [--tape N] [--max-steps N] [--dump-ir] [--trace]"
+    "Usage: bf <file> [--tape N] [--max-steps N] [--dump-ir] [--trace] [--no-opt]"
 }
 
 fn parse_tape_size(value: &str) -> Result<usize, String> {
@@ -47,6 +48,7 @@ fn main() {
     let mut max_steps_specified = false;
     let mut dump_ir = false;
     let mut trace = false;
+    let mut no_opt = false;
     let mut path = None;
 
     while let Some(arg) = args.next() {
@@ -138,6 +140,11 @@ fn main() {
             continue;
         }
 
+        if arg == NO_OPT_FLAG {
+            no_opt = true;
+            continue;
+        }
+
         if arg.starts_with('-') {
             eprintln!("{}", usage());
             process::exit(EXIT_USAGE);
@@ -158,7 +165,7 @@ fn main() {
         }
     };
 
-    if let Err(err) = run_file(&path, tape_size, max_steps, dump_ir, trace) {
+    if let Err(err) = run_file(&path, tape_size, max_steps, dump_ir, trace, no_opt) {
         eprintln!("{}", err);
         process::exit(EXIT_RUNTIME);
     }

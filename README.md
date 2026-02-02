@@ -1,93 +1,58 @@
 # 🧠 BF-EXPERIMENT Vault
 
-This repository is a **central vault** for all my Brainfuck-related work.
+This repository is the central vault for Brainfuck-related work.
 
 It contains:
-- Brainfuck programs
 - Runtime engines
-- Experimental projects
-- Future compiler and JIT research
+- Preprocessors and tooling
+- Experimental projects and research notes
 
-This is not a single project — it's a growing **ecosystem** around Brainfuck as a low-level execution model.
+This is not a single project. It is a growing ecosystem around Brainfuck as a minimal execution model.
 
----
+## 📦 Current Projects
 
-## 📦 Current Status
-
-### ✅ Interpreter Added
-
-The first major project inside the vault is a **Rust Brainfuck Interpreter**.
+### ✅ bf-interpretor (Rust runtime + BFPP)
 
 Location:
-projects/bf-interpretor/
+bf-interpretor/
 
-This interpreter provides:
-- Precomputed bracket jumps for loop execution
-- Deterministic execution model
-- 30,000-cell `u8` tape with wrapping arithmetic
-- Strict pointer bounds
-- Buffered stdin/stdout
-- No source echo
+Highlights:
+- IR-based interpreter with optimization pipeline
+- Bracket map precomputation
+- Deterministic execution with buffered I/O
+- BFPP with `#include`, comment stripping, and repeat expansion
 
-This serves as the **foundation runtime** for everything that comes next.
+See `bf-interpretor/README.md` for build and usage.
 
----
+### ✅ Brain-Fuck-web-IR-LAB (Web lab)
+
+Location:
+Brain-Fuck-web-IR-LAB/web/public/
+
+Goal:
+- Browser workspace for BF tooling, IR visualization, and future pipelines
 
 ## 🗂 Vault Structure
 
 ```text
 BF-EXPERIMENT/
+├── bf-interpretor/
 ├── Brain-Fuck-web-IR-LAB/
-│   └── web/public/
-│       ├── assets/
-│       ├── index.html
-│       └── README.md
-│
-├── programs/              # All Brainfuck programs
-│   ├── tests/
-│   ├── demos/
-│   └── experiments/
-│
-├── projects/
-│   ├── bf-interpretor/    # Rust interpreter (current)
-│   ├── bf-compiler/       # Future compiler
-│   └── bf-jit/            # Future JIT engine
-│
-├── tools/                 # Helper scripts
+├── LICENSE
 └── README.md
 ```
-
-### ✅ Minimal Web IR Lab Added
-
-A small web workspace is added to the vault for browser-side experiments.
-
-Location:
-```text
-Brain-Fuck-web-IR-LAB/web/public/
-```
-
-What it contains:
-- `index.html` — minimal page to load/run future BF tools
-- `assets/` — JS/CSS and future runtime/visualizer files
-- `README.md` — notes for this web lab
-
-Purpose:
-- Start a lightweight **BF IR / visualizer lab** on the web
-- Later connect it with the interpreter/compiler pipeline
 
 ## 🎯 Purpose of This Vault
 
 This vault is a long-term experiment in:
 
-- Language runtime design  
-- Interpreter → Compiler → JIT evolution  
-- Memory models and execution engines  
-- Performance optimization research  
-- Using Brainfuck as a minimal instruction set for complex systems  
+- Language runtime design
+- Interpreter to compiler to JIT evolution
+- Memory models and execution engines
+- Performance optimization research
+- Using Brainfuck as a minimal instruction set for complex systems
 
 The goal is to explore how far a tiny instruction set can be pushed with a powerful runtime.
-
----
 
 ## 🚀 Future Directions
 
@@ -101,8 +66,6 @@ Planned additions to this vault:
 - WebAssembly backend
 - Debugging tools
 - Graphics experiments (framebuffer rendering in BF)
-
----
 
 ## 🧩 Philosophy
 
