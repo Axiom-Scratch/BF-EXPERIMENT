@@ -1,0 +1,7 @@
+# Force BF sources to count as Brainfuck (not Beef)
+*.bf linguist-language=Brainfuck
+*.bfpp linguist-language=Brainfuck
+
+# If your BFPP emits generated output, exclude it from stats
+programs/out.bf linguist-generated=true
+programs/**/out*.bf linguist-generated=true
