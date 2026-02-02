@@ -1,6 +1,6 @@
-use std::io::{self, BufReader, BufWriter, Read, Write};
-
-const TAPE_SIZE: usize = 30_000;
+use crate::io::{Debug, Input, Output};
+use crate::ir::Instr;
+use std::io::{Read, Write};
 
 pub struct Vm {
     tape: Vec<u8>,
@@ -8,97 +8,234 @@ pub struct Vm {
 }
 
 impl Vm {
-    pub fn new() -> Self {
-        Self {
-            tape: vec![0; TAPE_SIZE],
-            pointer: 0,
+    pub fn with_capacity(tape_size: usize) -> Result<Self, String> {
+        if tape_size == 0 {
+            return Err("tape size must be greater than 0".to_string());
+        }
+        let mut tape = Vec::with_capacity(tape_size);
+        tape.resize(tape_size, 0);
+        Ok(Self { tape, pointer: 0 })
+    }
+
+    fn ensure_capacity(&mut self, required: usize) -> Result<(), String> {
+        if required < self.tape.len() {
+            return Ok(());
+        }
+
+        let mut new_len = self.tape.len().max(1);
+        while new_len <= required {
+            new_len = new_len
+                .checked_mul(2)
+                .ok_or_else(|| "runtime error: tape size overflow".to_string())?;
+        }
+
+        let additional = new_len
+            .checked_sub(self.tape.len())
+            .ok_or_else(|| "runtime error: tape size overflow".to_string())?;
+        self.tape
+            .try_reserve(additional)
+            .map_err(|e| format!("runtime error: tape resize failed: {}", e))?;
+        self.tape.resize(new_len, 0);
+        Ok(())
+    }
+
+    fn move_ptr(&mut self, delta: i32) -> Result<(), String> {
+        if delta == 0 {
+            return Ok(());
+        }
+        let delta_i64 = delta as i64;
+        if delta_i64 > 0 {
+            let shift = delta_i64 as usize;
+            let next = self
+                .pointer
+                .checked_add(shift)
+                .ok_or_else(|| "runtime error: pointer overflow".to_string())?;
+            if next >= self.tape.len() {
+                self.ensure_capacity(next)?;
+            }
+            self.pointer = next;
+        } else {
+            let shift = (-delta_i64) as usize;
+            if shift > self.pointer {
+                return Err("runtime error: pointer underflow".to_string());
+            }
+            self.pointer -= shift;
+        }
+        Ok(())
+    }
+
+    fn offset_index(&mut self, offset: i32) -> Result<usize, String> {
+        if offset == 0 {
+            return Ok(self.pointer);
+        }
+        if offset > 0 {
+            let shift = offset as usize;
+            let target = self
+                .pointer
+                .checked_add(shift)
+                .ok_or_else(|| "runtime error: pointer overflow".to_string())?;
+            if target >= self.tape.len() {
+                self.ensure_capacity(target)?;
+            }
+            Ok(target)
+        } else {
+            let shift = (-offset) as usize;
+            if shift > self.pointer {
+                return Err("runtime error: pointer underflow".to_string());
+            }
+            Ok(self.pointer - shift)
         }
     }
 
-    pub fn run(&mut self, ops: &[u8], jumps: &[usize]) -> Result<(), String> {
-        if ops.len() != jumps.len() {
-            return Err("ops and jumps length mismatch".to_string());
-        }
+    fn add_cell(&mut self, delta: i32) {
+        let value = self.tape[self.pointer];
+        self.tape[self.pointer] = value.wrapping_add(delta as u8);
+    }
 
-        let stdin = io::stdin();
-        let mut stdin = BufReader::new(stdin.lock());
-        let stdout = io::stdout();
-        let mut stdout = BufWriter::new(stdout.lock());
-        let mut read_buf = [0u8; 1];
+    pub fn run_ir<R, W, E>(
+        &mut self,
+        ir: &[Instr],
+        input: &mut Input<R>,
+        output: &mut Output<W>,
+        debug: Option<&mut Debug<E>>,
+        max_steps: Option<u64>,
+    ) -> Result<(), String>
+    where
+        R: Read,
+        W: Write,
+        E: Write,
+    {
+        self.run(ir, input, output, debug, max_steps)
+    }
+
+    pub fn run<R, W, E>(
+        &mut self,
+        ir: &[Instr],
+        input: &mut Input<R>,
+        output: &mut Output<W>,
+        mut debug: Option<&mut Debug<E>>,
+        max_steps: Option<u64>,
+    ) -> Result<(), String>
+    where
+        R: Read,
+        W: Write,
+        E: Write,
+    {
         let mut ip = 0usize;
+        let mut steps = 0u64;
 
-        while ip < ops.len() {
-            match ops[ip] {
-                b'>' => {
-                    let next = self
-                        .pointer
-                        .checked_add(1)
-                        .ok_or_else(|| "pointer overflow".to_string())?;
-                    if next >= self.tape.len() {
-                        return Err("pointer overflow".to_string());
-                    }
-                    self.pointer = next;
+        while ip < ir.len() {
+            if let Some(limit) = max_steps {
+                if steps >= limit {
+                    return Err("runtime error: max steps exceeded".to_string());
                 }
-                b'<' => {
-                    if self.pointer == 0 {
-                        return Err("pointer underflow".to_string());
-                    }
-                    self.pointer -= 1;
+            }
+
+            let instr = ir[ip];
+            if let Some(ref mut debug) = debug {
+                self.trace(debug, steps, ip, instr)?;
+            }
+
+            steps = steps
+                .checked_add(1)
+                .ok_or_else(|| "runtime error: step counter overflow".to_string())?;
+
+            match instr {
+                Instr::Add(delta) => {
+                    self.add_cell(delta);
                 }
-                b'+' => {
+                Instr::Move(delta) => {
+                    self.move_ptr(delta)?;
+                }
+                Instr::AddTo(offset, sign) => {
                     let value = self.tape[self.pointer];
-                    self.tape[self.pointer] = value.wrapping_add(1);
+                    if value != 0 {
+                        let target = self.offset_index(offset)?;
+                        let dest = self.tape[target];
+                        let updated = if sign < 0 {
+                            dest.wrapping_sub(value)
+                        } else {
+                            dest.wrapping_add(value)
+                        };
+                        self.tape[target] = updated;
+                        self.tape[self.pointer] = 0;
+                    }
                 }
-                b'-' => {
-                    let value = self.tape[self.pointer];
-                    self.tape[self.pointer] = value.wrapping_sub(1);
+                Instr::Output => {
+                    let byte = self.tape[self.pointer];
+                    output.write_byte(byte)?;
                 }
-                b'.' => {
-                    let byte = [self.tape[self.pointer]];
-                    stdout
-                        .write_all(&byte)
-                        .map_err(|e| format!("stdout write failed: {}", e))?;
-                }
-                b',' => {
-                    let read = stdin
-                        .read(&mut read_buf)
-                        .map_err(|e| format!("stdin read failed: {}", e))?;
-                    let value = if read == 0 { 0 } else { read_buf[0] };
+                Instr::Input => {
+                    let value = input.read_byte()?;
                     self.tape[self.pointer] = value;
                 }
-                b'[' => {
+                Instr::SetZero => {
+                    self.tape[self.pointer] = 0;
+                }
+                Instr::Scan(dir) => {
+                    if dir == 0 {
+                        return Err("runtime error: scan direction zero".to_string());
+                    }
+                    let step = if dir > 0 { 1 } else { -1 };
+                    while self.tape[self.pointer] != 0 {
+                        self.move_ptr(step)?;
+                    }
+                }
+                Instr::Jz(target) => {
                     if self.tape[self.pointer] == 0 {
-                        let target = jumps[ip];
-                        if target == usize::MAX {
-                            return Err("missing jump target for '['".to_string());
+                        if target >= ir.len() {
+                            return Err("runtime error: jump target out of range".to_string());
                         }
                         ip = target
                             .checked_add(1)
-                            .ok_or_else(|| "instruction pointer overflow".to_string())?;
+                            .ok_or_else(|| "runtime error: instruction pointer overflow".to_string())?;
                         continue;
                     }
                 }
-                b']' => {
+                Instr::Jnz(target) => {
                     if self.tape[self.pointer] != 0 {
-                        let target = jumps[ip];
-                        if target == usize::MAX {
-                            return Err("missing jump target for ']'".to_string());
+                        if target >= ir.len() {
+                            return Err("runtime error: jump target out of range".to_string());
                         }
                         ip = target;
                         continue;
                     }
                 }
-                _ => {}
             }
 
             ip = ip
                 .checked_add(1)
-                .ok_or_else(|| "instruction pointer overflow".to_string())?;
+                .ok_or_else(|| "runtime error: instruction pointer overflow".to_string())?;
         }
 
-        stdout
-            .flush()
-            .map_err(|e| format!("stdout flush failed: {}", e))?;
+        output.flush()?;
         Ok(())
+    }
+
+    fn trace<E: Write>(
+        &self,
+        debug: &mut Debug<E>,
+        steps: u64,
+        ip: usize,
+        instr: Instr,
+    ) -> Result<(), String> {
+        let cell = self.tape[self.pointer];
+        debug.write_fmt(format_args!(
+            "step={} ip={} ptr={} cell={} ",
+            steps, ip, self.pointer, cell
+        ))?;
+        match instr {
+            Instr::Add(delta) => debug.write_fmt(format_args!("Add {}\n", delta)),
+            Instr::Move(delta) => debug.write_fmt(format_args!("Move {}\n", delta)),
+            Instr::AddTo(offset, sign) => {
+                debug.write_fmt(format_args!("AddTo {} {}\n", offset, sign))
+            }
+            Instr::Output => debug.write_fmt(format_args!("Output\n")),
+            Instr::Input => debug.write_fmt(format_args!("Input\n")),
+            Instr::Jz(target) => debug.write_fmt(format_args!("Jz {}\n", target)),
+            Instr::Jnz(target) => debug.write_fmt(format_args!("Jnz {}\n", target)),
+            Instr::SetZero => debug.write_fmt(format_args!("SetZero\n")),
+            Instr::Scan(dir) => debug.write_fmt(format_args!("Scan {}\n", dir)),
+        }
     }
 }

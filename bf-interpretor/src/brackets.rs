@@ -8,7 +8,7 @@ pub fn build_jumps(ops: &[u8]) -> Result<Vec<usize>, String> {
             b']' => {
                 let open = stack
                     .pop()
-                    .ok_or_else(|| format!("unmatched ']' at {}", idx))?;
+                    .ok_or_else(|| format!("syntax error: unmatched ']' at {}", idx))?;
                 jumps[open] = idx;
                 jumps[idx] = open;
             }
@@ -17,7 +17,7 @@ pub fn build_jumps(ops: &[u8]) -> Result<Vec<usize>, String> {
     }
 
     if let Some(&open) = stack.last() {
-        return Err(format!("unmatched '[' at {}", open));
+        return Err(format!("syntax error: unmatched '[' at {}", open));
     }
 
     Ok(jumps)
